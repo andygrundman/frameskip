@@ -45,7 +45,6 @@
         var times = [];
         var frame = 100;
         var boxes = document.getElementById("boxes");
-        var inter;
         const nextFrame = () => {
             var box = document.createElement("div");
             box.className = "box";
@@ -61,16 +60,21 @@
                 frame = 100;
         }
         const refreshLoop = () => {
-            if (document.getElementById("auto").checked && enabled) {
+            if (enabled) {
                 window.requestAnimationFrame(() => {
-                    const now = performance.now();
-                    while (times.length > 0 && times[0] <= now - 1000) {
-                        times.shift();
-                    }
-                    times.push(now);
-                    document.getElementById("fps").value = times.length;
                     nextFrame();
-                    refreshLoop();
+                    if (document.getElementById("auto").checked) {
+                        const now = performance.now();
+                        while (times.length > 0 && times[0] <= now - 1000) {
+                            times.shift();
+                        }
+                        times.push(now);
+                        document.getElementById("fps").value = times.length;
+                        refreshLoop();
+                    }
+                    else {
+                        setTimeout(refreshLoop, 1000 / parseInt(document.getElementById("fps").value));
+                    }
                 });
             }
         }
@@ -80,20 +84,12 @@
             boxes.innerHTML = "";
             frame = 100;
             times = [];
-            clearInterval(inter);
-            inter = undefined;
-            if (document.getElementById("auto").checked) {
-                refreshLoop();
-            } else {
-                inter = setInterval(nextFrame, 1000 / parseInt(document.getElementById("fps").value));
-            }
+            refreshLoop();
         }
         document.getElementById("stop").onclick = () => {
-            clearInterval(inter);
             enabled = false;
         }
         document.getElementById("fps").onfocus = () => {
-            clearInterval(inter);
             enabled = false;
             document.getElementById("auto").checked = false;
             document.getElementById("fps").select();
