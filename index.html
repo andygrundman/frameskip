@@ -34,9 +34,9 @@
 </head>
 
 <body>
-    <div id="settings"><label for="fps"><input type="text" id="fps" size="3" /> Hz</label> <label for="auto"><input
-                type="checkbox" id="auto">Auto</label> <label for="trail"><input type="checkbox"
-                id="trail">Trail</label>
+    <div id="settings"><label for="fps"><input type="text" id="fps" size="3" value="60" /> Hz</label> <label
+            for="auto"><input type="checkbox" id="auto" checked>Auto</label> <label for="trail"><input type="checkbox"
+                id="trail" checked>Trail</label> <input type="text" id="fps2" size="3" disabled /> actual
         <button id="start">Start</button> <button id="stop">Stop</button>
     </div>
     <div id="boxes"></div>
@@ -45,12 +45,48 @@
         var times = [];
         var frame = 100;
         var boxes = document.getElementById("boxes");
+        var timer;
+
+        function interval(duration, fn) {
+            var _this = this
+            this.baseline = undefined
+
+            this.run = function () {
+                if (_this.baseline === undefined) {
+                    _this.baseline = new Date().getTime()
+                }
+                fn()
+                var end = new Date().getTime()
+                _this.baseline += duration
+
+                var nextTick = duration - (end - _this.baseline)
+                if (nextTick < 0) {
+                    nextTick = 0
+                }
+
+                _this.timer = setTimeout(function () {
+                    _this.run(end)
+                }, nextTick)
+            }
+
+            this.cancel = function () {
+                clearTimeout(_this.timer)
+            }
+        }
+
         const nextFrame = () => {
+            const now = performance.now();
+            while (times.length > 0 && times[0] <= now - 1000) {
+                times.shift();
+            }
+            times.push(now);
+            document.getElementById("fps2").value = times.length;
+
             var box = document.createElement("div");
             box.className = "box";
             box.innerHTML = frame;
             document.querySelectorAll('.box').forEach((box) => {
-                box.style.color = document.getElementById("trail").checked ? "#0c0c0c" : "#000";
+                box.style.color = document.getElementById("trail").checked ? "#200000" : "#000";
             });
             boxes.append(box);
             if (document.body.clientHeight > document.documentElement.clientHeight)
@@ -59,35 +95,38 @@
             if (++frame > 999)
                 frame = 100;
         }
+        const animateFrame = () => {
+            window.requestAnimationFrame(nextFrame);
+        }
         const refreshLoop = () => {
-            if (enabled) {
+            if (enabled && document.getElementById("auto").checked) {
                 window.requestAnimationFrame(() => {
                     nextFrame();
-                    if (document.getElementById("auto").checked) {
-                        const now = performance.now();
-                        while (times.length > 0 && times[0] <= now - 1000) {
-                            times.shift();
-                        }
-                        times.push(now);
-                        document.getElementById("fps").value = times.length;
-                        refreshLoop();
-                    }
-                    else {
-                        setTimeout(refreshLoop, 1000 / parseInt(document.getElementById("fps").value));
-                    }
+                    refreshLoop();
                 });
             }
         }
         document.getElementById("start").onclick = () => {
+            document.getElementById("stop").click();
             enabled = true;
             boxes.style.fontSize = parseInt(document.documentElement.clientWidth / 24) + "px";
             boxes.innerHTML = "";
             frame = 100;
             times = [];
-            refreshLoop();
+            if (document.getElementById("auto").checked)
+                refreshLoop();
+            else {
+                timer = new interval(1000 / parseInt(document.getElementById("fps").value), nextFrame);
+                timer.run();
+            }
+
         }
         document.getElementById("stop").onclick = () => {
             enabled = false;
+            if (timer) {
+                timer.cancel();
+                timer = undefined;
+            }
         }
         document.getElementById("fps").onfocus = () => {
             enabled = false;
