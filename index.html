@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Frame skip/latency test</title>
+    <style>
+        * {
+            background: black;
+            color: white;
+            font-family: monospace;
+            font-weight: bold;
+        }
+
+        #settings {
+            font-size: 16px;
+        }
+
+        .box {
+            display: inline-block;
+            width: 10%;
+            height: 10%;
+        }
+
+        #boxes {
+            font-size: 80px;
+        }
+
+        input,
+        button {
+            border: 1px solid #555;
+            font-size: 16px;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="settings"><label for="fps"><input type="text" id="fps" size="3" /> Hz</label> <label for="auto"><input
+                type="checkbox" id="auto">Auto</label> <label for="trail"><input type="checkbox"
+                id="trail">Trail</label>
+        <button id="start">Start</button> <button id="stop">Stop</button>
+    </div>
+    <div id="boxes"></div>
+    <script>
+        var enabled = false;
+        var times = [];
+        var frame = 100;
+        var boxes = document.getElementById("boxes");
+        var inter;
+        const nextFrame = () => {
+            var box = document.createElement("div");
+            box.className = "box";
+            box.innerHTML = frame;
+            document.querySelectorAll('.box').forEach((box) => {
+                box.style.color = document.getElementById("trail").checked ? "#0c0c0c" : "#000";
+            });
+            boxes.append(box);
+            if (document.body.clientHeight > document.documentElement.clientHeight)
+                while (boxes.childNodes.length > 1)
+                    boxes.removeChild(boxes.firstChild);
+            if (++frame > 999)
+                frame = 100;
+        }
+        const refreshLoop = () => {
+            if (document.getElementById("auto").checked && enabled) {
+                window.requestAnimationFrame(() => {
+                    const now = performance.now();
+                    while (times.length > 0 && times[0] <= now - 1000) {
+                        times.shift();
+                    }
+                    times.push(now);
+                    document.getElementById("fps").value = times.length;
+                    nextFrame();
+                    refreshLoop();
+                });
+            }
+        }
+        document.getElementById("start").onclick = () => {
+            enabled = true;
+            boxes.style.fontSize = parseInt(document.documentElement.clientWidth / 24) + "px";
+            boxes.innerHTML = "";
+            frame = 100;
+            times = [];
+            clearInterval(inter);
+            inter = undefined;
+            if (document.getElementById("auto").checked) {
+                refreshLoop();
+            } else {
+                inter = setInterval(nextFrame, 1000 / parseInt(document.getElementById("fps").value));
+            }
+        }
+        document.getElementById("stop").onclick = () => {
+            clearInterval(inter);
+            enabled = false;
+        }
+        document.getElementById("fps").onfocus = () => {
+            clearInterval(inter);
+            enabled = false;
+            document.getElementById("auto").checked = false;
+            document.getElementById("fps").select();
+        }
+        document.getElementById("fps").onkeypress = (e) => {
+            if (e.which == 0xd) {
+                document.getElementById("fps").blur();
+                document.getElementById("start").click();
+            }
+        }
+    </script>
+</body>
+
+</html>
