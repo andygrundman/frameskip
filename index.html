@@ -2,48 +2,88 @@
 <html>
 
 <head>
-    <title>Frame skip/latency test</title>
+    <title>Frame skip/latency test and counter</title>
     <style>
-        * {
+        body,
+        html {
+            margin: 0;
+            padding: 0;
             background: black;
+        }
+
+        * {
             color: white;
             font-family: monospace;
             font-weight: bold;
         }
 
         #settings {
+            width: 100vw;
+            height: 32px;
+            overflow: hidden;
             font-size: 16px;
+            white-space: nowrap;
+            position: absolute;
+            top: 0;
+            left: 0;
+            padding: 5px;
+            box-sizing: border-box;
         }
 
         .box {
             display: inline-block;
-            width: 10%;
-            height: 10%;
+            width: 10vw;
+            height: 9.5vh;
+            margin: 0;
+            padding: 0;
+            text-align: center;
         }
 
         #boxes {
             font-size: 80px;
+            width: 100vw;
+            height: 95vh;
+            padding-top: 5vh;
+        }
+
+        input[type=text] {
+            width: 32px;
+            text-align: right;
+        }
+
+        button {
+            width: 80px;
         }
 
         input,
         button {
+            background: black;
             border: 1px solid #555;
             font-size: 16px;
+        }
+
+        #fps2 {
+            display: inline-block;
+            width: 32px;
+            text-align: right;
         }
     </style>
 </head>
 
 <body>
-    <div id="settings"><label for="fps"><input type="text" id="fps" size="3" value="60" /> Hz</label> <label
-            for="auto"><input type="checkbox" id="auto" checked>Auto</label> <label for="trail"><input type="checkbox"
-                id="trail" checked>Trail</label> <input type="text" id="fps2" size="3" disabled /> actual
-        <button id="start">Start</button> <button id="stop">Stop</button>
-    </div>
     <div id="boxes"></div>
+    <div id="settings"><label for="fps">FPS: <input type="text" id="fps" size="3" value="60" /></label> / <label
+            for="auto"><input type="checkbox" id="auto" checked>Auto</label> | Current FPS:<span id="fps2"></span> |
+        <label for="trail"><input type="checkbox" id="trail" checked>Trail</label> |
+        <button id="start">Start</button> / <button id="stop">Stop</button> |
+        For best results, use Auto and a Blink-based browser in fullscreen.
+        That might actually sync to the current monitor.
+    </div>
     <script>
         var enabled = false;
         var times = [];
         var frame = 100;
+        var count = 0;
         var boxes = document.getElementById("boxes");
         var timer;
 
@@ -80,8 +120,12 @@
                 times.shift();
             }
             times.push(now);
-            document.getElementById("fps2").value = times.length;
+            document.getElementById("fps2").innerHTML = times.length;
 
+            if (count >= 100) {
+                count = 0;
+                boxes.innerHTML = "";
+            }
             var box = document.createElement("div");
             box.className = "box";
             box.innerHTML = frame;
@@ -89,11 +133,9 @@
                 box.style.color = document.getElementById("trail").checked ? "#200000" : "#000";
             });
             boxes.append(box);
-            if (document.body.clientHeight > document.documentElement.clientHeight)
-                while (boxes.childNodes.length > 1)
-                    boxes.removeChild(boxes.firstChild);
             if (++frame > 999)
                 frame = 100;
+            ++count;
         }
         const animateFrame = () => {
             window.requestAnimationFrame(nextFrame);
@@ -107,15 +149,19 @@
             }
         }
         document.getElementById("start").onclick = () => {
-            document.getElementById("stop").click();
+            if (enabled)
+                return;
             enabled = true;
             boxes.style.fontSize = parseInt(document.documentElement.clientWidth / 24) + "px";
             boxes.innerHTML = "";
             frame = 100;
+            count = 0;
             times = [];
-            if (document.getElementById("auto").checked)
+            if (document.getElementById("auto").checked) {
                 refreshLoop();
-            else {
+            } else {
+                if (timer)
+                    timer.cancel();
                 timer = new interval(1000 / parseInt(document.getElementById("fps").value), nextFrame);
                 timer.run();
             }
@@ -129,7 +175,7 @@
             }
         }
         document.getElementById("fps").onfocus = () => {
-            enabled = false;
+            document.getElementById("stop").click();
             document.getElementById("auto").checked = false;
             document.getElementById("fps").select();
         }
@@ -138,6 +184,13 @@
                 document.getElementById("fps").blur();
                 document.getElementById("start").click();
             }
+        }
+        document.getElementById("auto").onchange = () => {
+            document.getElementById("stop").click();
+        }
+        window.onresize = () => {
+            boxes.style.fontSize = parseInt(document.documentElement.clientWidth / 24) + "px";
+            boxes.style.lineHeight = boxes.style.fontSize;
         }
     </script>
 </body>
