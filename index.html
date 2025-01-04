@@ -148,7 +148,7 @@
             box.className = "box";
             box.innerHTML = frame;
             document.querySelectorAll('.box').forEach((box) => {
-                box.style.color = document.getElementById("trail").checked ? "#200000" : "#000";
+                box.style.color = document.getElementById("trail").checked ? "#200000" : "transparent";
             });
             boxes.append(box);
             if (++frame > 999)
