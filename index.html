@@ -8,7 +8,24 @@
         html {
             margin: 0;
             padding: 0;
+        }
+
+        html {
             background: black;
+        }
+
+        html.noise {
+            background:
+                repeating-radial-gradient(#000 0 0.0001%, #0a0a0a 0 0.0002%) 50% 0/2500px 2500px,
+                repeating-conic-gradient(#000 0 0.0001%, #0a0a0a 0 0.0002%) 60% 60%/2500px 2500px;
+            background-blend-mode: difference;
+            animation: noise .016s infinite alternate;
+        }
+
+        @keyframes noise {
+            100% {
+                background-position: 50% 0, 60% 50%
+            }
         }
 
         * {
@@ -74,7 +91,8 @@
     <div id="boxes"></div>
     <div id="settings"><label for="fps">FPS: <input type="text" id="fps" size="3" value="60" /></label> / <label
             for="auto"><input type="checkbox" id="auto" checked>Auto</label> | Current FPS:<span id="fps2"></span> |
-        <label for="trail"><input type="checkbox" id="trail" checked>Trail</label> |
+        <label for="trail"><input type="checkbox" id="trail" checked>Trail</label> | <label for="noise"><input
+                type="checkbox" id="noise">Noise</label> |
         <button id="start">Start</button> / <button id="stop">Stop</button> |
         For best results, use Auto and a Blink-based browser in fullscreen.
         That might actually sync to the current monitor.
@@ -165,7 +183,10 @@
                 timer = new interval(1000 / parseInt(document.getElementById("fps").value), nextFrame);
                 timer.run();
             }
-
+            if (document.getElementById("noise").checked)
+                document.documentElement.classList.add("noise")
+            else
+                document.documentElement.classList.remove("noise")
         }
         document.getElementById("stop").onclick = () => {
             enabled = false;
@@ -187,6 +208,12 @@
         }
         document.getElementById("auto").onchange = () => {
             document.getElementById("stop").click();
+        }
+        document.getElementById("noise").onchange = () => {
+            if (document.getElementById("noise").checked)
+                document.documentElement.classList.add("noise")
+            else
+                document.documentElement.classList.remove("noise")
         }
         window.onresize = () => {
             boxes.style.fontSize = parseInt(document.documentElement.clientWidth / 24) + "px";
