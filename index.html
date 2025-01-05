@@ -28,6 +28,25 @@
             }
         }
 
+        #ball {
+            background: white;
+            position: absolute;
+            bottom: 4px;
+            border-radius: 10px;
+            width: 20px;
+            height: 20px;
+        }
+
+        #ball.on {
+            animation: ball 3s linear infinite;
+        }
+
+        @keyframes ball {
+            100% {
+                margin-left: 98%;
+            }
+        }
+
         * {
             color: white;
             font-family: monospace;
@@ -45,6 +64,7 @@
             left: 0;
             padding: 5px;
             box-sizing: border-box;
+            user-select: none;
         }
 
         .box {
@@ -84,18 +104,24 @@
             width: 32px;
             text-align: right;
         }
+
+        button,
+        label {
+            cursor: pointer;
+        }
     </style>
 </head>
 
 <body>
+    <div id="ball"></div>
     <div id="boxes"></div>
     <div id="settings"><label for="fps">FPS: <input type="text" id="fps" size="3" value="60" /></label> / <label
             for="auto"><input type="checkbox" id="auto" checked>Auto</label> | Current FPS:<span id="fps2"></span> |
-        <label for="trail"><input type="checkbox" id="trail" checked>Trail</label> | <label for="noise"><input
-                type="checkbox" id="noise">Noise</label> |
+        <label for="trail"><input type="checkbox" id="trail" checked autocomplete="off">Trail</label> |
+        <label for="noise"><input type="checkbox" id="noise" autocomplete="off">Noise</label> |
+        <label for="tone"><input type="checkbox" id="tone" autocomplete="off">Tone</label> |
         <button id="start">Start</button> / <button id="stop">Stop</button> |
-        For best results, use Auto and a Blink-based browser in fullscreen.
-        That might actually sync to the current monitor.
+        For best results use Auto and a Chrome flavored browser in fullscreen to sync to the current monitor.
     </div>
     <script>
         var enabled = false;
@@ -104,6 +130,29 @@
         var count = 0;
         var boxes = document.getElementById("boxes");
         var timer;
+        var tone = 0;
+        var playing = false;
+
+        const play = () => {
+            if (!playing) {
+                playing = true;
+                var ctx = new window.AudioContext;
+                tone = ctx.createOscillator();
+                var gain = ctx.createGain();
+                gain.gain.setValueAtTime(0.5, ctx.currentTime);
+                tone.connect(gain);
+                gain.connect(ctx.destination);
+                tone.frequency.value = 440;
+                tone.start();
+            }
+        }
+
+        const stop = () => {
+            if (playing) {
+                playing = false;
+                tone.stop();
+            }
+        }
 
         function interval(duration, fn) {
             var _this = this
@@ -184,9 +233,10 @@
                 timer.run();
             }
             if (document.getElementById("noise").checked)
-                document.documentElement.classList.add("noise")
+                document.documentElement.classList.add("noise");
             else
-                document.documentElement.classList.remove("noise")
+                document.documentElement.classList.remove("noise");
+            document.getElementById("ball").classList.add("on");
         }
         document.getElementById("stop").onclick = () => {
             enabled = false;
@@ -194,6 +244,7 @@
                 timer.cancel();
                 timer = undefined;
             }
+            document.getElementById("ball").classList.remove("on");
         }
         document.getElementById("fps").onfocus = () => {
             document.getElementById("stop").click();
@@ -211,9 +262,15 @@
         }
         document.getElementById("noise").onchange = () => {
             if (document.getElementById("noise").checked)
-                document.documentElement.classList.add("noise")
+                document.documentElement.classList.add("noise");
             else
-                document.documentElement.classList.remove("noise")
+                document.documentElement.classList.remove("noise");
+        }
+        document.getElementById("tone").onchange = () => {
+            if (document.getElementById("tone").checked)
+                play();
+            else
+                stop();
         }
         window.onresize = () => {
             boxes.style.fontSize = parseInt(document.documentElement.clientWidth / 24) + "px";
