@@ -55,7 +55,7 @@
 
         #settings {
             width: 100vw;
-            height: 32px;
+            height: 64px;
             overflow: hidden;
             font-size: 16px;
             white-space: nowrap;
@@ -65,6 +65,10 @@
             padding: 5px;
             box-sizing: border-box;
             user-select: none;
+        }
+
+        #calc {
+            user-select: text;
         }
 
         .box {
@@ -128,7 +132,11 @@
                 style="color: #900000">⋯</span>Trail</label> |
         <label for="noise"><input type="checkbox" id="noise" autocomplete="off">🥵Noise</label> |
         <label for="tone"><input type="checkbox" id="tone" autocomplete="off">🎺Tone</label> |
-        For best results use Auto and a Chrome flavored browser in fullscreen to sync to the current monitor.
+        For best results use Auto and a Chrome flavored browser in fullscreen to sync to the current monitor.<br />
+        <div id="calc">Calculate delay | <label for="a">Host: <input type="text" id="a" /></label> ≥ <label
+                for="b">Client: <input type="text" id="b" /></label> <span id="delay"> |
+                Snap a short exposure photo where both host and client screens are visible at the same time.</span>
+        </div>
     </div>
     <script>
         var fps = 0;
@@ -306,6 +314,18 @@
             else
                 stop();
         }
+        const calc = () => {
+            var a = parseInt(document.getElementById("a").value);
+            var b = parseInt(document.getElementById("b").value);
+            var realFps = fps > 0 ? fps : parseInt(document.getElementById("fps").value);
+            var delta = a - b;
+            var ms = (1 / realFps) * delta * 1000;
+            document.getElementById("delay").innerText = " = " + delta + " frames = " + ms.toFixed(2) + "ms @ " + realFps.toFixed(2) + " fps";
+        }
+        document.getElementById("a").onchange = calc;
+        document.getElementById("b").onchange = calc;
+        document.getElementById("a").onkeyup = calc;
+        document.getElementById("b").onkeyup = calc;
         window.onresize = () => {
             boxes.style.fontSize = parseInt(document.documentElement.clientWidth / 24) + "px";
             boxes.style.lineHeight = boxes.style.fontSize;
