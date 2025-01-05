@@ -81,6 +81,7 @@
             width: 100vw;
             height: 95vh;
             padding-top: 5vh;
+            user-select: none;
         }
 
         input[type=text] {
@@ -101,7 +102,7 @@
 
         #fps2 {
             display: inline-block;
-            width: 32px;
+            width: 64px;
             text-align: right;
         }
 
@@ -121,14 +122,16 @@
     <div id="boxes"></div>
     <div id="settings"><label for="fps">FPS: <input type="text" id="fps" size="3" value="60" /></label> / <label
             for="auto"><input type="checkbox" id="auto" checked autocomplete="off">Auto</label>
-        ~<span id="fps2"></span> |
+        ≈<span id="fps2"></span> |
         <label for="start"><input type="checkbox" id="start" autocomplete="off">🏃RUN TEST</label> |
-        <label for="trail"><input type="checkbox" id="trail" checked autocomplete="off">⋯Trail</label> |
+        <label for="trail"><input type="checkbox" id="trail" checked autocomplete="off"><span
+                style="color: #900000">⋯</span>Trail</label> |
         <label for="noise"><input type="checkbox" id="noise" autocomplete="off">🥵Noise</label> |
         <label for="tone"><input type="checkbox" id="tone" autocomplete="off">🎺Tone</label> |
         For best results use Auto and a Chrome flavored browser in fullscreen to sync to the current monitor.
     </div>
     <script>
+        var fps = 0;
         var times = [];
         var frame = 100;
         var count = 0;
@@ -136,6 +139,29 @@
         var timer;
         var tone = 0;
         var playing = false;
+
+        var mouseTimer = null, cursorVisible = true;
+
+        const hideCursor = () => {
+            if (!document.getElementById("start").checked)
+                return;
+            mouseTimer = null;
+            document.body.style.cursor = "none";
+            cursorVisible = false;
+        }
+
+        const checkCursor = () => {
+            if (mouseTimer) {
+                window.clearTimeout(mouseTimer);
+            }
+            if (!cursorVisible) {
+                document.body.style.cursor = "default";
+                cursorVisible = true;
+            }
+            mouseTimer = window.setTimeout(hideCursor, 2000);
+        }
+
+        document.onmousemove = checkCursor;
 
         const play = () => {
             if (!playing) {
@@ -185,14 +211,17 @@
             }
         }
 
-        const nextFrame = () => {
-            const now = performance.now();
-            while (times.length > 0 && times[0] <= now - 1000) {
-                times.shift();
+        const fpsTick = function () {
+            times.push(performance.now());
+            const ms = times[times.length - 1] - times[0];
+            if (ms >= 1000) {
+                fps = (times.length - 1) / ms * 1000;
+                times = [];
             }
-            times.push(now);
-            document.getElementById("fps2").innerHTML = times.length;
+            document.getElementById('fps2').innerText = fps.toFixed(2);
+        }
 
+        const nextFrame = () => {
             if (count >= 100) {
                 count = 0;
                 boxes.innerHTML = "";
@@ -207,6 +236,7 @@
             if (++frame > 999)
                 frame = 100;
             ++count;
+            fpsTick();
         }
         const animateFrame = () => {
             window.requestAnimationFrame(nextFrame);
@@ -245,6 +275,7 @@
                 else
                     document.documentElement.classList.remove("noise");
                 document.getElementById("ball").classList.add("on");
+                checkCursor();
             }
         }
         document.getElementById("fps").onfocus = () => {
