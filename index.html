@@ -109,6 +109,10 @@
         label {
             cursor: pointer;
         }
+
+        label[for="start"] {
+            color: lime;
+        }
     </style>
 </head>
 
@@ -116,15 +120,15 @@
     <div id="ball"></div>
     <div id="boxes"></div>
     <div id="settings"><label for="fps">FPS: <input type="text" id="fps" size="3" value="60" /></label> / <label
-            for="auto"><input type="checkbox" id="auto" checked>Auto</label> | Current FPS:<span id="fps2"></span> |
-        <label for="trail"><input type="checkbox" id="trail" checked autocomplete="off">Trail</label> |
-        <label for="noise"><input type="checkbox" id="noise" autocomplete="off">Noise</label> |
-        <label for="tone"><input type="checkbox" id="tone" autocomplete="off">Tone</label> |
-        <button id="start">Start</button> / <button id="stop">Stop</button> |
+            for="auto"><input type="checkbox" id="auto" checked autocomplete="off">Auto</label>
+        ~<span id="fps2"></span> |
+        <label for="start"><input type="checkbox" id="start" autocomplete="off">🏃RUN TEST</label> |
+        <label for="trail"><input type="checkbox" id="trail" checked autocomplete="off">⋯Trail</label> |
+        <label for="noise"><input type="checkbox" id="noise" autocomplete="off">🥵Noise</label> |
+        <label for="tone"><input type="checkbox" id="tone" autocomplete="off">🎺Tone</label> |
         For best results use Auto and a Chrome flavored browser in fullscreen to sync to the current monitor.
     </div>
     <script>
-        var enabled = false;
         var times = [];
         var frame = 100;
         var count = 0;
@@ -208,47 +212,45 @@
             window.requestAnimationFrame(nextFrame);
         }
         const refreshLoop = () => {
-            if (enabled && document.getElementById("auto").checked) {
+            if (document.getElementById("start").checked && document.getElementById("auto").checked) {
                 window.requestAnimationFrame(() => {
                     nextFrame();
                     refreshLoop();
                 });
             }
         }
-        document.getElementById("start").onclick = () => {
-            if (enabled)
-                return;
-            enabled = true;
-            boxes.style.fontSize = parseInt(document.documentElement.clientWidth / 24) + "px";
-            boxes.innerHTML = "";
-            frame = 100;
-            count = 0;
-            times = [];
-            if (document.getElementById("auto").checked) {
-                refreshLoop();
-            } else {
-                if (timer)
+        document.getElementById("start").onchange = () => {
+            if (!document.getElementById("start").checked) {
+                if (timer) {
                     timer.cancel();
-                timer = new interval(1000 / parseInt(document.getElementById("fps").value), nextFrame);
-                timer.run();
+                    timer = undefined;
+                }
+                document.getElementById("ball").classList.remove("on");
+            } else {
+                boxes.style.fontSize = parseInt(document.documentElement.clientWidth / 24) + "px";
+                boxes.innerHTML = "";
+                frame = 100;
+                count = 0;
+                times = [];
+                if (document.getElementById("auto").checked) {
+                    refreshLoop();
+                } else {
+                    if (timer)
+                        timer.cancel();
+                    timer = new interval(1000 / parseInt(document.getElementById("fps").value), nextFrame);
+                    timer.run();
+                }
+                if (document.getElementById("noise").checked)
+                    document.documentElement.classList.add("noise");
+                else
+                    document.documentElement.classList.remove("noise");
+                document.getElementById("ball").classList.add("on");
             }
-            if (document.getElementById("noise").checked)
-                document.documentElement.classList.add("noise");
-            else
-                document.documentElement.classList.remove("noise");
-            document.getElementById("ball").classList.add("on");
-        }
-        document.getElementById("stop").onclick = () => {
-            enabled = false;
-            if (timer) {
-                timer.cancel();
-                timer = undefined;
-            }
-            document.getElementById("ball").classList.remove("on");
         }
         document.getElementById("fps").onfocus = () => {
-            document.getElementById("stop").click();
             document.getElementById("auto").checked = false;
+            document.getElementById("start").checked = false;
+            document.getElementById("start").dispatchEvent(new Event("change"));
             document.getElementById("fps").select();
         }
         document.getElementById("fps").onkeypress = (e) => {
@@ -258,7 +260,8 @@
             }
         }
         document.getElementById("auto").onchange = () => {
-            document.getElementById("stop").click();
+            document.getElementById("start").checked = false;
+            document.getElementById("start").dispatchEvent(new Event("change"));
         }
         document.getElementById("noise").onchange = () => {
             if (document.getElementById("noise").checked)
