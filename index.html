@@ -2,12 +2,13 @@
 <html>
 
 <head>
-    <title>Frame skip/latency test and counter</title>
+    <title>Stream frameskip/latency tester thing</title>
     <style>
         body,
         html {
             margin: 0;
             padding: 0;
+            overflow: hidden;
         }
 
         html {
@@ -38,7 +39,7 @@
         }
 
         #ball.on {
-            animation: ball 3s linear infinite;
+            animation: ball 2s linear infinite;
         }
 
         @keyframes ball {
@@ -118,10 +119,78 @@
         label[for="start"] {
             color: lime;
         }
+
+        #help {
+            display: none;
+        }
+
+        #help.on {
+            display: block;
+            position: absolute;
+            top: 100px;
+            left: 100px;
+            font-size: 14px;
+            white-space: nowrap;
+        }
     </style>
 </head>
 
 <body>
+    <ul id="help" class="on">
+        <li>This is a tool to test video stream latency, frameskip, bandwidth and audio errors</li>
+        <li>I made this in a few hours to test my own setup and it works for me, might not work for you</li>
+        <li>Warning: Contains flashing lights and annoying sounds</li>
+        <li>For best results you should use Auto mode on a Chrome flavored browser in fullscreen</li>
+        <li>Close other apps that might steal screen time from the browser and skew the results</li>
+        <li>Make sure the tool is running at the desired FPS and is the active window</li>
+        <li>Manual FPS may introduce frameskip even on the host side and is not recommended</li>
+        <li>Auto FPS uses whatever requestAnimationFrame dictates, which is usually synced to desktop FPS,
+            <br />but it should sync to a secondary monitor too when running fullscreen
+        </li>
+        <li>Combine different options to test different scenarios</li>
+        <li>If testing Moonlight, enable the stats to verify it's also running smoothly (Ctrl+Alt+Shift+S)
+        </li>
+        <br />
+        <li>To test stream latency (display to display):
+            <ul>
+                <li>Run the test and snap a short exposure photo where both displays are visible</li>
+                <li>Enter the last frame numbers visible on each display to the calculator</li>
+                <li>The numbers are a frame counter that increases by one every frame, whatever the current FPS is</li>
+                <li>The delay between frames is 1/FPS, therefore the delay from host to client is 1/FPS*(HOST-CLIENT)
+                </li>
+                <li>Using a non-gaming monitor on the host might even make it seem like you have negative
+                    latency,<br>but just be happy your stream is working better than your monitor I guess</li>
+            </ul>
+        </li>
+        <li>To test frameskip:
+            <ul>
+                <li>Run the test and look for holes basically</li>
+                <li>The frames in the frame counter will stay lit for exactly one frame</li>
+                <li>Any skipped frames will look like dark holes in the stream of bright numbers</li>
+                <li>You can try what this looks like by manually entering a stupid fps like 69 on a 60Hz monitor</li>
+                <li>Make sure the host doesn't have frameskip first or testing the stream is pointless</li>
+                <li>You can also take some long exposure (~1s) photos to check for dark frames</li>
+            </ul>
+        </li>
+        <li>To test bandwidth and annoy the encoder:
+            <ul>
+                <li>Enable the Noise option to add some barely visible static noise to the background</li>
+                <li>This should annoy the encoder enought that it will always use most of the allotted bitrate</li>
+                <li>With Noise off the encoder is unlikely to need more than 5Mbps to draw some silly numbers</li>
+            </ul>
+        </li>
+        <li>To test smooth framerate:
+            <ul>
+                <li>The ball at the bottom should be moving at a constant speed, not hopping around</li>
+            </ul>
+        </li>
+        <li>To test audio errors:
+            <ul>
+                <li>Enable the Tone option to play a 440Hz sine wave</li>
+                <li>If you hear crackling on the client, you're dropping audio frames</li>
+            </ul>
+        </li>
+    </ul>
     <div id="ball"></div>
     <div id="boxes"></div>
     <div id="settings"><label for="fps">FPS: <input type="text" id="fps" size="3" value="60" /></label> / <label
@@ -133,8 +202,8 @@
         <label for="noise"><input type="checkbox" id="noise" autocomplete="off">🥵Noise</label> |
         <label for="tone"><input type="checkbox" id="tone" autocomplete="off">🎺Tone</label> |
         For best results use Auto and a Chrome flavored browser in fullscreen to sync to the current monitor.<br />
-        <div id="calc">Calculate delay | <label for="a">Host: <input type="text" id="a" /></label> ≥ <label
-                for="b">Client: <input type="text" id="b" /></label> <span id="delay"> |
+        <div id="calc">Calculator | <label for="a">Host: <input type="text" id="a" /></label> ≥ <label for="b">Client:
+                <input type="text" id="b" /></label> <span id="delay"> |
                 Snap a short exposure photo where both host and client screens are visible at the same time.</span>
         </div>
     </div>
@@ -264,6 +333,7 @@
                     timer = undefined;
                 }
                 document.getElementById("ball").classList.remove("on");
+                document.getElementById("help").classList.add("on");
             } else {
                 boxes.style.fontSize = parseInt(document.documentElement.clientWidth / 24) + "px";
                 boxes.innerHTML = "";
@@ -283,6 +353,7 @@
                 else
                     document.documentElement.classList.remove("noise");
                 document.getElementById("ball").classList.add("on");
+                document.getElementById("help").classList.remove("on");
                 checkCursor();
             }
         }
@@ -320,7 +391,7 @@
             var realFps = fps > 0 ? fps : parseInt(document.getElementById("fps").value);
             var delta = a - b;
             var ms = (1 / realFps) * delta * 1000;
-            document.getElementById("delay").innerText = " = " + delta + " frames = " + ms.toFixed(2) + "ms @ " + realFps.toFixed(2) + " fps";
+            document.getElementById("delay").innerText = " = " + delta + " frames = " + ms.toFixed(2) + "ms @ " + realFps.toFixed(2) + " FPS";
         }
         document.getElementById("a").onchange = calc;
         document.getElementById("b").onchange = calc;
