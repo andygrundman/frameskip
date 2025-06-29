@@ -56,7 +56,7 @@
 
         #settings {
             width: 100vw;
-            height: 64px;
+            height: 70px;
             overflow: hidden;
             font-size: 16px;
             white-space: nowrap;
@@ -118,6 +118,10 @@
 
         label[for="start"] {
             color: lime;
+        }
+
+        input[id="fps"] {
+            width: 100px;
         }
 
         #help {
@@ -201,7 +205,7 @@
     </ul>
     <div id="ball"></div>
     <div id="boxes"></div>
-    <div id="settings"><label for="fps">FPS: <input type="text" id="fps" size="3" value="60" /></label> / <label
+    <div id="settings"><label for="fps">FPS: <input type="text" id="fps" size="8" value="60" /></label> / <label
             for="auto"><input type="checkbox" id="auto" checked autocomplete="off">Auto</label>
         ≈<span id="fps2"></span> |
         <label for="start"><input type="checkbox" id="start" autocomplete="off">🏃RUN TEST</label> |
@@ -209,6 +213,7 @@
                 style="color: #900000">⋯</span>Trail</label> |
         <label for="noise"><input type="checkbox" id="noise" autocomplete="off">🥵Noise</label> |
         <label for="tone"><input type="checkbox" id="tone" autocomplete="off">🎺Tone</label>
+        <div style="font-size: 14px">Supported formats: 60 (integer), 59.94 (fractional), 60000/1001 (NTSC)</div>
         <div id="calc">Calculator | <label for="a">Host: <input type="text" id="a" /></label> ≥ <label for="b">Client:
                 <input type="text" id="b" /></label> <span id="delay"></span>
         </div>
@@ -294,6 +299,20 @@
             }
         }
 
+        function parseFpsInput(value) {
+            if (value.includes('/')) {
+                const [numerator, denominator] = value.split('/').map(Number);
+                if (denominator && denominator !== 0) {
+                    return numerator / denominator;
+                }
+                return NaN;
+            } else if (value.includes('.')) {
+                return parseFloat(value);
+            } else {
+                return parseInt(value);
+            }
+        }
+
         const fpsTick = function () {
             times.push(performance.now());
             const ms = times[times.length - 1] - times[0];
@@ -349,9 +368,42 @@
                 if (document.getElementById("auto").checked) {
                     refreshLoop();
                 } else {
-                    if (timer)
+                    if (timer) {
                         timer.cancel();
-                    timer = new interval(1000 / parseInt(document.getElementById("fps").value), nextFrame);
+                    }
+                    const fpsInput = document.getElementById("fps").value;
+                    const fpsValue = parseFpsInput(fpsInput);
+                    if (isNaN(fpsValue) || fpsValue <= 0) {
+                        alert("Invalid FPS value");
+                        return;
+                    }
+
+                    timer = {
+                        cancel: () => clearTimeout(timer.timeoutId),
+                        run: () => {
+                            const intervalMs = 1000 / fpsValue;
+                            let start = performance.now();
+                            let frameCount = 0;
+
+                            const tick = () => {
+                                nextFrame();
+                                frameCount++;
+
+                                const nextFrameTime = start + frameCount * intervalMs;
+                                const now = performance.now();
+                                let delay = nextFrameTime - now;
+
+                                if (delay < 0) {
+                                    // If we are behind, skip ahead
+                                    delay = 0;
+                                    start = now;
+                                    frameCount = 0;
+                                }
+                                timer.timeoutId = setTimeout(tick, delay);
+                            };
+                            timer.timeoutId = setTimeout(tick, intervalMs);
+                        }
+                    };
                     timer.run();
                 }
                 if (document.getElementById("noise").checked)
@@ -392,13 +444,14 @@
                 stop();
         }
         const calc = () => {
-            var a = parseInt(document.getElementById("a").value);
-            var b = parseInt(document.getElementById("b").value);
-            var realFps = fps > 0 ? fps : parseInt(document.getElementById("fps").value);
-            var delta = a - b;
-            var ms = (1 / realFps) * delta * 1000;
-            document.getElementById("delay").innerText = " = " + delta + " frames = " + ms.toFixed(2) + "ms @ " + realFps.toFixed(2) + " FPS";
-        }
+            const a = parseInt(document.getElementById("a").value);
+            const b = parseInt(document.getElementById("b").value);
+            const fpsInput = document.getElementById("fps").value;
+            const realFps = parseFpsInput(fpsInput) || fps;
+            const delta = a - b;
+            const ms = (1 / realFps) * delta * 1000;
+            document.getElementById("delay").innerText = ` = ${delta} frames = ${ms.toFixed(2)}ms @ ${realFps.toFixed(5)} FPS`;
+        };
         document.getElementById("a").onchange = calc;
         document.getElementById("b").onchange = calc;
         document.getElementById("a").onkeyup = calc;
